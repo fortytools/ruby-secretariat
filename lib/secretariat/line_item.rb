@@ -35,6 +35,8 @@ module Secretariat
     :charge_amount,
     :origin_country_code,
     :currency_code,
+    :billing_period_start, # DateTimeString, e.g. 20180101
+    :billing_period_end, # DateTimeString, e.g. 20180131
     keyword_init: true
   ) do
 
@@ -163,6 +165,19 @@ module Secretariat
           monetary_summation = by_version(version, 'SpecifiedTradeSettlementMonetarySummation', 'SpecifiedTradeSettlementLineMonetarySummation')
           xml['ram'].send(monetary_summation) do
             Helpers.currency_element(xml, 'ram', 'LineTotalAmount', charge_amount, currency_code, add_currency: version == 1)
+          end
+            
+          xml['ram'].BillingSpecifiedPeriod do
+            xml['ram'].StartDateTime do
+              xml['udt'].DateTimeString(format: '102') do
+                xml.text billing_period_start.to_s
+              end
+            end
+            xml['ram'].EndDateTime do
+              xml['udt'].DateTimeString(format: '102') do
+                xml.text billing_period_end.to_s
+              end
+            end
           end
         end
 
