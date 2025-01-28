@@ -33,6 +33,11 @@ module Secretariat
         origin_country_code: 'DE',
         currency_code: 'EUR'
       )
+      attachment = Attachment.new(
+        filename: 'example.txt',
+        type_code: 916,
+        base64: 'SGVsbG8gV29ybGQK'
+      )
       Invoice.new(
         id: '12345',
         issue_date: Date.today,
@@ -42,6 +47,7 @@ module Secretariat
         currency_code: 'USD',
         payment_type: :CREDITCARD,
         payment_text: 'Kreditkarte',
+        payment_status: 'paid',
         tax_category: :REVERSECHARGE,
         tax_percent: 0,
         tax_amount: '0',
@@ -49,7 +55,8 @@ module Secretariat
         grand_total_amount: 29,
         due_amount: 0,
         paid_amount: 29,
-        buyer_reference: 'REF-112233'
+        buyer_reference: 'REF-112233',
+        attachments: [attachment]
       )
     end
 
@@ -94,6 +101,7 @@ module Secretariat
         currency_code: 'USD',
         payment_type: :CREDITCARD,
         payment_text: 'Kreditkarte',
+        payment_status: 'paid',
         tax_category: :STANDARDRATE,
         tax_percent: '19',
         tax_amount: '3.80',
