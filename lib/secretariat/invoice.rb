@@ -39,6 +39,7 @@ module Secretariat
     :payment_description,
     :payment_status,
     :payment_due_date,
+    :attachments,
 
     keyword_init: true
   ) do
@@ -185,6 +186,13 @@ module Secretariat
               xml['ram'].BuyerTradeParty do
                 buyer.to_xml(xml, version: version)
               end
+              if version >= 2
+                if Array(attachments).size > 0
+                  attachments.each_with_index do |attachment, i|
+                    attachment.to_xml(xml, i, version: version)
+                  end
+                end
+              end
             end
 
             delivery = by_version(version, 'ApplicableSupplyChainTradeDelivery', 'ApplicableHeaderTradeDelivery')
@@ -231,7 +239,7 @@ module Secretariat
               xml['ram'].SpecifiedTradePaymentTerms do
                 if payment_status == 'unpaid'
                   xml['ram'].Description payment_description
-                  xml['ram'].DueDateDateTime do 
+                  xml['ram'].DueDateDateTime do
                     xml['udt'].DateTimeString(format: '102') do
                       xml.text(payment_due_date&.strftime('%Y%m%d'))
                     end
