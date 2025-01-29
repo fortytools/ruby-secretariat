@@ -18,6 +18,15 @@ limitations under the License.
 
 require 'mime/types'
 
+ALLOWED_MIME_TYPES = [
+  "application/pdf",
+  "application/vnd.oasis.opendocument.spreadsheet",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "image/jpeg",
+  "image/png",
+  "text/csv"
+]
+
 module Secretariat
 
 
@@ -40,8 +49,18 @@ module Secretariat
       @errors << "the attribute type_code needs to be present" if type_code.nil? || type_code == ''
       @errors << "the attribute base64 needs to be present" if base64.nil? || base64 == ''
 
+      if type_code.to_i != 916
+        @errors << "we only support type_code 916"
+        return false
+      end
+
       if mime_code.nil?
         @errors << "cannot determine content type for filename: #{filename}"
+        return false
+      end
+      
+      if !ALLOWED_MIME_TYPES.include?(mime_code)
+        @errors << "the mime_code '#{mime_code}' is not allowed"
         return false
       end
 

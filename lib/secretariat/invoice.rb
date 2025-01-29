@@ -186,9 +186,11 @@ module Secretariat
               xml['ram'].BuyerTradeParty do
                 buyer.to_xml(xml, version: version)
               end
-              if Array(attachments).size > 0
-                attachments.each_with_index do |attachment, i|
-                  attachment.to_xml(xml, i, version: version)
+              if version >= 2
+                if Array(attachments).size > 0
+                  attachments.each_with_index do |attachment, i|
+                    attachment.to_xml(xml, i, version: version)
+                  end
                 end
               end
             end
