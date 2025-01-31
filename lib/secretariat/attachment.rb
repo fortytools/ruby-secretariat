@@ -18,18 +18,7 @@ limitations under the License.
 
 require 'mime/types'
 
-ALLOWED_MIME_TYPES = [
-  "application/pdf",
-  "application/vnd.oasis.opendocument.spreadsheet",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "image/jpeg",
-  "image/png",
-  "text/csv"
-]
-
 module Secretariat
-
-
   Attachment = Struct.new('Attachment',
     :filename,
     :type_code,

@@ -15,5 +15,5 @@ limitations under the License.
 =end
 
 module Secretariat
-  VERSION = '2.2.0'
+  VERSION = '2.3.0'
 end
