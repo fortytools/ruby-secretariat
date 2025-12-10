@@ -18,7 +18,7 @@ module Secretariat
   using ObjectExtensions
   
   TradeParty = Struct.new('TradeParty',
-    :name, :street1, :street2, :city, :postal_code, :country_id, :vat_id, :contact_name, :contact_phone, :contact_email, :global_id, :global_id_scheme_id, :tax_id,
+    :name, :street1, :street2, :street3, :city, :postal_code, :country_id, :vat_id, :contact_name, :contact_phone, :contact_email, :global_id, :global_id_scheme_id, :tax_id,
     keyword_init: true,
   ) do
     def to_xml(xml, exclude_tax: false, version: 2)
@@ -48,6 +48,9 @@ module Secretariat
         xml['ram'].LineOne street1
         if street2.present?
           xml['ram'].LineTwo street2
+        end
+        if street3.present?
+          xml['ram'].LineThree street3
         end
         xml['ram'].CityName city
         xml['ram'].CountryID country_id
