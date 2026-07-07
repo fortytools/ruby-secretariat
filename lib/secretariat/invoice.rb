@@ -264,11 +264,14 @@ module Secretariat
             delivery = by_version(version, 'ApplicableSupplyChainTradeDelivery', 'ApplicableHeaderTradeDelivery')
 
             xml['ram'].send(delivery) do
-              if version >= 2
-                xml['ram'].ShipToTradeParty do
-                  buyer.to_xml(xml, exclude_tax: true, version: version)
-                end
-              end
+              # TODO: merge latest change from upstream
+              # currently we are using buyer address on both BuyerTradeParty and BuyerTradeParty
+              # this made a X-Rechnung validator showing a warning of "[CII-SR-312] - DefinedTradeContact should not be present" on https://www.eu-rechnung.de/e-rechnung-validieren
+              # if version >= 2
+              #   xml['ram'].BuyerTradeParty do
+              #     buyer.to_xml(xml, exclude_tax: true, version: version)
+              #   end
+              # end
               xml['ram'].ActualDeliverySupplyChainEvent do
                 xml['ram'].OccurrenceDateTime do
                   xml['udt'].DateTimeString(format: '102') do
