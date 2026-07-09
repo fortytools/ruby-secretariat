@@ -24,8 +24,6 @@ module Secretariat
     "text/csv"
   ]
     
-  BASIS_QUANTITY = 1.0
-
   TAX_CATEGORY_CODES = {
    :STANDARDRATE => "S",
    :REVERSECHARGE => "AE",
@@ -55,8 +53,10 @@ module Secretariat
    :DEBITADVICE => "31",
    :CREDITCARD => "48",
    :DEBIT => "49",
-   :SEPA_CREDIT => "58",
-   :SEPA_DEBIT => "59",
+   :CREDITTRANSFER => "54",
+   :DIRECTDEBIT => "55",
+   :SEPACREDITTRANSFER => "58",
+   :SEPADIRECTDEBIT => "59",
    :COMPENSATION => "97"
   }
 
@@ -75,6 +75,7 @@ module Secretariat
   UNIT_CODES = {
     :ONE => "C62",  
     :PIECE => "H87",
+    :YEAR => "ANN",
     :DAY => "DAY",
     :HECTARE => "HAR",
     :HOUR => "HUR",
