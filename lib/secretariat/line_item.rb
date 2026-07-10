@@ -222,7 +222,7 @@ module Secretariat
             end
           end
 
-          if version == 2 && self.service_period_start && self.service_period_end
+          if version >= 2 && self.service_period_start && self.service_period_end
             xml['ram'].BillingSpecifiedPeriod do
               xml['ram'].StartDateTime do
                 xml['udt'].DateTimeString(format: '102') do

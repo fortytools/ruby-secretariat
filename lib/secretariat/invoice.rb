@@ -339,7 +339,7 @@ module Secretariat
                   # end
                 end
               end
-              if version == 2 && service_period_start && service_period_end
+              if version >= 2 && service_period_start && service_period_end
                 xml['ram'].BillingSpecifiedPeriod do
                   xml['ram'].StartDateTime do
                     Helpers.date_element(xml, service_period_start)
