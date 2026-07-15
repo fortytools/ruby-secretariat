@@ -28,8 +28,9 @@ module Secretariat
     :invoice_type,
     :invoice_reference_number,
     :invoice_reference_date,
-    :seller,
-    :buyer,
+    :seller, # TradeParty
+    :buyer, # TradeParty
+    :ship_to, # TradeParty or nil (buyer) or false (no ShipTo)
     :buyer_reference,
     :line_items,
     :currency_code,
@@ -52,6 +53,10 @@ module Secretariat
     :tax_calculation_method,
     :notes,
     :attachments,
+    :direct_debit_mandate_reference_id, # BT-89
+    :direct_debit_creditor_id, # BT-90
+    :direct_debit_iban, # BT-91,
+    :subject_code, # BT-21
     keyword_init: true
   ) do
 
@@ -61,8 +66,16 @@ module Secretariat
       @errors
     end
 
-    def tax_reason_text
-      tax_reason || TAX_EXEMPTION_REASONS[tax_category]
+    def tax_reason_text(tax)
+      tax_reason || TAX_EXEMPTION_REASONS[tax.tax_category || tax_category]
+    end
+
+    # ship_to: nil => use buyer (backwards compatibility)
+    # ship_to: false => ignore
+    def ship_to_or_buyer
+      return buyer if ship_to.nil?
+
+      ship_to
     end
 
     def tax_category_code(tax, version: 2)
@@ -86,11 +99,11 @@ module Secretariat
       line_items.each do |line_item|
         if line_item.tax_percent.nil?
           taxes['0'] = Tax.new(tax_percent: BigDecimal(0), tax_category: line_item.tax_category, tax_amount: BigDecimal(0)) if taxes['0'].nil?
-          taxes['0'].base_amount += BigDecimal(line_item.net_amount) * line_item.quantity
+          taxes['0'].base_amount += BigDecimal(line_item.net_amount) * line_item.billed_quantity
         else
           taxes[line_item.tax_percent] = Tax.new(tax_percent: BigDecimal(line_item.tax_percent), tax_category: line_item.tax_category) if taxes[line_item.tax_percent].nil?
           taxes[line_item.tax_percent].tax_amount += BigDecimal(line_item.tax_amount)
-          taxes[line_item.tax_percent].base_amount += BigDecimal(line_item.net_amount) * line_item.quantity
+          taxes[line_item.tax_percent].base_amount += BigDecimal(line_item.net_amount) * line_item.billed_quantity
         end
       end
 
@@ -112,12 +125,12 @@ module Secretariat
       @errors = []
       tax = BigDecimal(tax_amount)
       basis = BigDecimal(basis_amount)
-      summed_tax_amount = taxes.sum(&:tax_amount)
+      summed_tax_amount = taxes.sum(&:tax_amount).round(2)
       if tax != summed_tax_amount
         @errors << "Tax amount and summed tax amounts deviate: #{tax_amount} / #{summed_tax_amount}"
         return false
       end
-      summed_tax_base_amount = taxes.sum(&:base_amount)
+      summed_tax_base_amount = taxes.sum(&:base_amount).round(2)
       if basis != summed_tax_base_amount
         @errors << "Base amount and summed tax base amount deviate: #{basis} / #{summed_tax_base_amount}"
         return false
@@ -144,7 +157,7 @@ module Secretariat
         return false
       end
       line_item_sum = line_items.inject(BigDecimal(0)) do |m, item|
-        m + BigDecimal(item.quantity.negative? ? -item.charge_amount : item.charge_amount)
+        m + BigDecimal(item.billed_quantity.negative? ? -item.charge_amount : item.charge_amount)
       end
       if line_item_sum != basis
         @errors << "Line items do not add up to basis amount #{line_item_sum} / #{basis}"
@@ -227,6 +240,7 @@ module Secretariat
             Array(self.notes).each do |note|
               xml['ram'].IncludedNote do
                 xml['ram'].Content note
+                xml['ram'].SubjectCode subject_code if subject_code
               end
             end
           end
@@ -264,14 +278,11 @@ module Secretariat
             delivery = by_version(version, 'ApplicableSupplyChainTradeDelivery', 'ApplicableHeaderTradeDelivery')
 
             xml['ram'].send(delivery) do
-              # TODO: merge latest change from upstream
-              # currently we are using buyer address on both BuyerTradeParty and BuyerTradeParty
-              # this made a X-Rechnung validator showing a warning of "[CII-SR-312] - DefinedTradeContact should not be present" on https://www.eu-rechnung.de/e-rechnung-validieren
-              # if version >= 2
-              #   xml['ram'].BuyerTradeParty do
-              #     buyer.to_xml(xml, exclude_tax: true, version: version)
-              #   end
-              # end
+              if version >= 2 && ship_to_or_buyer
+                xml['ram'].ShipToTradeParty do
+                  ship_to_or_buyer.to_xml(xml, exclude_tax: true, version: version)
+                end
+              end
               xml['ram'].ActualDeliverySupplyChainEvent do
                 xml['ram'].OccurrenceDateTime do
                   xml['udt'].DateTimeString(format: '102') do
@@ -286,6 +297,9 @@ module Secretariat
             end
             trade_settlement = by_version(version, 'ApplicableSupplyChainTradeSettlement', 'ApplicableHeaderTradeSettlement')
             xml['ram'].send(trade_settlement) do
+              if direct_debit_creditor_id
+                xml['ram'].CreditorReferenceID direct_debit_creditor_id # BT-90
+              end
               if payment_reference.present?
                 xml['ram'].PaymentReference payment_reference
               end
@@ -304,13 +318,18 @@ module Secretariat
                     xml['ram'].BICID payment_bic
                   end
                 end
+                if direct_debit_iban
+                  xml['ram'].PayerPartyDebtorFinancialAccount do
+                    xml['ram'].IBANID direct_debit_iban
+                  end
+                end
               end
               taxes.each do |tax|
                 xml['ram'].ApplicableTradeTax do
                   Helpers.currency_element(xml, 'ram', 'CalculatedAmount', tax.tax_amount, currency_code, add_currency: version == 1)
                   xml['ram'].TypeCode 'VAT'
-                  if tax_reason_text.present?
-                    xml['ram'].ExemptionReason tax_reason_text
+                  if tax_reason_text(tax).present?
+                    xml['ram'].ExemptionReason tax_reason_text(tax)
                   end
                   Helpers.currency_element(xml, 'ram', 'BasisAmount', tax.base_amount, currency_code, add_currency: version == 1)
                   xml['ram'].CategoryCode tax_category_code(tax, version: version)
@@ -320,7 +339,7 @@ module Secretariat
                   # end
                 end
               end
-              if version == 2 && service_period_start && service_period_end
+              if version >= 2 && service_period_start && service_period_end
                 xml['ram'].BillingSpecifiedPeriod do
                   xml['ram'].StartDateTime do
                     Helpers.date_element(xml, service_period_start)
@@ -336,6 +355,9 @@ module Secretariat
                   xml['ram'].DueDateDateTime do
                     Helpers.date_element(xml, payment_due_date)
                   end
+                end
+                if direct_debit_mandate_reference_id
+                  xml['ram'].DirectDebitMandateID direct_debit_mandate_reference_id
                 end
               end
 
