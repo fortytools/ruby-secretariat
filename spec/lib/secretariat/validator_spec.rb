@@ -58,6 +58,31 @@ RSpec.describe Secretariat::Validator do
     }
   end
 
+  context "Schematron-Artefakte" do
+    # Ein echter Schematron-Lauf für v2/v3 scheitert an XSLT 2 (siehe pending oben),
+    # daher wird die Verknüpfung .sch -> codedb hier statisch abgesichert.
+    {0 => "ZUGFeRD 1", 1 => "Factur-X"}.each do |idx, name|
+      it "alle document()-Referenzen im #{name}-Schematron zeigen auf vorhandene Dateien" do
+        lib_dir = Secretariat.file_path("lib/secretariat")
+        schema_dir = File.expand_path(described_class::SCHEMA_DIR[idx], lib_dir)
+        sch = File.read(File.expand_path(described_class::SCHEMATRON[idx], lib_dir), encoding: "UTF-8")
+        referenced = sch.scan(/document\('([^']+)'\)/).flatten.uniq
+        expect(referenced).not_to be_empty if idx == 1
+        referenced.each do |filename|
+          expect(File).to exist(File.join(schema_dir, filename)),
+            "#{filename} wird im Schematron referenziert, fehlt aber in #{schema_dir}"
+        end
+      end
+    end
+
+    it "scheitert beim Laden des Factur-X-Schematrons an der bekannten XSLT-2-Einschränkung" do
+      [2, 3].each do |version|
+        validator = described_class.new("<xml/>", version: version)
+        expect { validator.schematron }.to raise_error(RuntimeError, /xslt2/)
+      end
+    end
+  end
+
   context "nicht unterstützte Version" do
     it "lehnt version 4 mit klarer Fehlermeldung ab" do
       expect { described_class.new("<xml/>", version: 4) }

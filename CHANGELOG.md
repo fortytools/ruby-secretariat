@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.2.0
+
+- [CHG] Schemas auf **Factur-X 1.09.2 (ZUGFeRD 2.5.2)** aktualisiert (gültig ab 1. September 2026). Die XSDs sind inhaltlich unverändert (die 2.5.2-XSD-Änderungen betreffen nur das nicht gebündelte Profil EXTENDED); die Schematron-Regeln wurden aktualisiert (u. a. BR-CO-27 → CII-SR-470, neuer Metadaten-Header)
+- [CHG] Schematron und codedb liegen jetzt unter den FeRD-Originalnamen ohne Versionssuffix (`FACTUR-X_EN16931.sch`, `FACTUR-X_EN16931_codedb.xml`); `Validator::SCHEMA_VERSION` steuert nur noch die XSD-Dateinamen
+- [CHG] Mustang-CLI 2.24.0 → 2.25.0: Validierungsregeln für ZUGFeRD 2.5.2/Factur-X 1.09.2, VeraPDF-Sicherheitsfixes (CVE-2026-54078, CVE-2026-54079)
+- [CHG] Neue Specs: `document()`-Referenzen im Schematron zeigen auf vorhandene Dateien, Schematron lädt für version 2/3
+
 ## 2.1.4
 
 - [FIX] Kontoinhaber wird jetzt als `<ram:AccountName>` ausgegeben (wurde bisher nie ins XML geschrieben)
