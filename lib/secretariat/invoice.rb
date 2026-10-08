@@ -283,12 +283,10 @@ module Secretariat
                   ship_to_or_buyer.to_xml(xml, exclude_tax: true, version: version)
                 end
               end
-              xml['ram'].ActualDeliverySupplyChainEvent do
-                xml['ram'].OccurrenceDateTime do
-                  xml['udt'].DateTimeString(format: '102') do
-                    if delivery_date.nil? || issue_date == delivery_date
-                      xml.text(issue_date.strftime("%Y%m%d"))
-                    else
+              if delivery_date.present?
+                xml['ram'].ActualDeliverySupplyChainEvent do
+                  xml['ram'].OccurrenceDateTime do
+                    xml['udt'].DateTimeString(format: '102') do
                       xml.text(delivery_date.strftime("%Y%m%d"))
                     end
                   end
